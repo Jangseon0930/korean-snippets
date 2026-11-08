@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>한글 단축어 — 크롬에서 한글 단축어가 되는 확장</title>
+<meta name="description" content="Text Blaze, TextExpander 같은 단축어 도구는 한글에서 안 됩니다. 조합 중인 글자를 못 보기 때문입니다. 한글 단축어는 그 구간을 잡아 핫키 없이 바로 바꿉니다.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>⌨️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0c0d;
+    --panel: #141617;
+    --raised: #1c1f21;
+    --rule: #272b2d;
+    --ink: #f2f0ec;
+    --dim: #8e9593;
+    --amber: #ffcf7a;
+    --amber-deep: #e0a93f;
+    --red: #ef8a7a;
+    --green: #8ad6a8;
+    --sans: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 300 16.5px/1.8 var(--sans);
+    word-break: keep-all;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 위쪽에 깔리는 옅은 빛. 검은 화면이 평평해 보이지 않게만 한다. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -30% 0 auto;
+    height: 70vh;
+    background: radial-gradient(60% 50% at 50% 0%, rgba(255, 207, 122, 0.10), transparent 70%);
+    pointer-events: none;
+  }
+
+  main { position: relative; max-width: 720px; margin: 0 auto; padding: 0 22px 110px; }
+
+  h1 {
+    font-size: clamp(32px, 7vw, 50px);
+    font-weight: 700;
+    line-height: 1.22;
+    letter-spacing: -0.035em;
+    margin: clamp(64px, 14vw, 110px) 0 18px;
+  }
+
+  h2 {
+    font-size: clamp(21px, 4vw, 26px);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    margin: 84px 0 16px;
+  }
+
+  h3 { font-size: 15.5px; font-weight: 600; margin: 30px 0 6px; color: var(--amber); }
+  p { margin: 0 0 15px; }
+  strong { font-weight: 600; }
+
+  .lead { font-size: clamp(17px, 2.4vw, 19px); color: var(--dim); max-width: 34em; }
+  .mono, code { font-family: var(--mono); font-size: 0.9em; }
+
+  code {
+    padding: 0.12em 0.42em;
+    background: var(--raised);
+    border-radius: 5px;
+    color: var(--amber);
+  }
+
+  /* ── 맨 위 시연 ──────────────────────────────────────────────────
+     글로 설명하기 전에 눈으로 보여준다. 이 제품이 하는 일은 한 줄이다. */
+
+  .stage {
+    margin: 34px 0 10px;
+    padding: 30px 28px;
+    background: linear-gradient(180deg, var(--panel), #101213);
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
+  }
+
+  .stage__label { font-size: 11.5px; letter-spacing: 0.1em; color: var(--dim); text-transform: uppercase; }
+
+  .stage__line {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    min-height: 2.1em;
+    margin-top: 12px;
+    font: 600 clamp(22px, 4.6vw, 30px)/1.4 var(--mono);
+    letter-spacing: -0.01em;
+  }
+
+  .stage__line .typed { color: var(--amber); }
+  .stage__line .grown { color: var(--ink); font-family: var(--sans); font-weight: 500; }
+
+  .caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    background: var(--amber);
+    transform: translateY(0.12em);
+    animation: blink 1.05s steps(2, start) infinite;
+  }
+  @keyframes blink { to { visibility: hidden; } }
+
+  /* ── 직접 쳐보기 ────────────────────────────────────────────────── */
+
+  .tryout {
+    margin: 26px 0;
+    padding: 26px 24px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0 16px; }
+
+  .chip {
+    padding: 5px 11px;
+    background: var(--raised);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    font: 500 12.5px var(--mono);
+    color: var(--amber);
+  }
+
+  .tryout textarea {
+    width: 100%;
+    min-height: 110px;
+    padding: 15px 16px;
+    background: #0d0f10;
+    border: 1px solid var(--rule);
+    border-radius: 11px;
+    color: var(--ink);
+    font: 300 16px/1.75 var(--sans);
+    resize: vertical;
+  }
+  .tryout textarea:focus { outline: 2px solid var(--amber-deep); outline-offset: 1px; }
+  .tryout textarea::placeholder { color: #5d6462; }
+
+  .tryout__note { margin: 10px 0 0; font-size: 13px; color: var(--dim); }
+
+  /* ── 조합 설명 ───────────────────────────────────────────────────── */
+
+  .why {
+    margin: 26px 0;
+    padding: 26px 26px 24px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 14px 14px 0;
+  }
+
+  .compose {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin: 18px 0;
+    font: 600 30px/1 var(--mono);
+  }
+  .compose span { color: var(--amber); transition: opacity .3s; }
+  .compose span.off { opacity: 0.22; }
+  .compose i { color: var(--dim); font-size: 17px; font-style: normal; }
+  .compose .done { color: var(--green); }
+
+  .band {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(239, 138, 122, 0.12);
+    color: var(--red);
+    font-size: 12.5px;
+  }
+
+  /* ── 비교 ────────────────────────────────────────────────────────── */
+
+  .compare { margin: 24px 0; border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th, td { padding: 13px 14px; text-align: left; border-bottom: 1px solid var(--rule); }
+  tr:last-child td { border-bottom: 0; }
+  th { background: #101213; color: var(--dim); font-weight: 500; font-size: 12.5px; letter-spacing: 0.02em; }
+  td:first-child { white-space: nowrap; font-weight: 500; }
+  .no { color: var(--red); }
+  .yes { color: var(--green); }
+  tr.ours td { background: rgba(255, 207, 122, 0.065); }
+  tr.ours td:first-child { color: var(--amber); font-weight: 600; }
+
+  /* ── 차례 ────────────────────────────────────────────────────────── */
+
+  .steps { margin: 20px 0; padding: 0; list-style: none; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 12px 0 12px 44px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .steps li:last-child { border-bottom: 0; }
+  .steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 12px;
+    width: 27px; height: 27px; border-radius: 50%;
+    background: var(--raised); border: 1px solid var(--rule);
+    color: var(--amber); font: 600 12px/25px var(--mono); text-align: center;
+  }
+
+  /* ── 값 ──────────────────────────────────────────────────────────── */
+
+  .price {
+    margin: 28px 0;
+    padding: 36px 28px 30px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--panel), #0f1112);
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+  }
+  .price .free { color: var(--dim); font-size: 14px; }
+  .price .amount {
+    margin: 12px 0 2px;
+    font: 700 clamp(38px, 8vw, 50px)/1 var(--sans);
+    letter-spacing: -0.04em;
+  }
+  .price .once { color: var(--amber); font-size: 14px; font-weight: 500; }
+  .price .vs { margin-top: 14px; color: var(--dim); font-size: 13px; }
+
+  .cta {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 14px 32px;
+    border-radius: 11px;
+    background: var(--raised);
+    border: 1px solid var(--rule);
+    color: var(--dim);
+    font-weight: 500;
+    text-decoration: none;
+    cursor: default;
+  }
+
+  footer {
+    margin-top: 90px; padding-top: 26px;
+    border-top: 1px solid var(--rule);
+    color: var(--dim); font-size: 13.5px;
+  }
+  a { color: var(--amber); text-decoration-color: rgba(255, 207, 122, 0.35); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before { animation: none !important; transition: none !important; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>짧게 치면 길게 나옵니다.<br>한글로도.</h1>
+
+<p class="lead">자주 쓰는 말을 단축어로 등록해 두면 아무 입력창에서나 치는 대로 바뀝니다.
+한글 자판을 영어로 바꿀 필요가 없습니다.</p>
+
+<div class="stage">
+  <div class="stage__label">이렇게 됩니다</div>
+  <div class="stage__line" id="stage"><span class="caret"></span></div>
+</div>
+
+<h2>직접 쳐보세요</h2>
+<p>설치하기 전에, 이 페이지에서 바로 됩니다. 아래 칸에 이 중 하나를 쳐보십시오.</p>
+
+<div class="tryout">
+  <div class="chips">
+    <span class="chip">ㅇㄴ</span>
+    <span class="chip">ㄱㅅ</span>
+    <span class="chip">;배송</span>
+    <span class="chip">;sig</span>
+  </div>
+  <textarea id="try" placeholder="여기에 ㅇㄴ 라고 쳐보세요. 한글 자판 그대로요."></textarea>
+  <p class="tryout__note">치는 중에 바뀝니다. 추가로 누를 키가 없습니다.</p>
+</div>
+
+<h2>그런데 왜 다른 도구는 한글이 안 될까요</h2>
+
+<p>Text Blaze, TextExpander, Briskine 을 쓰다가 <strong>한글 단축어만 안 되는</strong>
+경험을 하셨다면 버그가 아닙니다. 구조 때문입니다.</p>
+
+<div class="why">
+  <p style="margin:0">한글은 자판을 누른 순간 글자가 되지 않습니다.</p>
+  <div class="compose" id="compose">
+    <span data-step="0">ㅇ</span><i>→</i><span data-step="1">아</span><i>→</i><span data-step="2" class="done">안</span>
+  </div>
+  <p style="margin:0">이 과정을 <strong>조합</strong>이라고 합니다. 끝나기 전까지 그 글자는
+  확정되지 않은 채 떠 있고, <strong>키 입력을 지켜보는 방식으로는 이 구간이 보이지
+  않습니다.</strong></p>
+  <p style="margin:12px 0 0"><span class="band">영어는 이 구간이 없습니다</span>
+  <code>g</code> 를 누르면 바로 <code>g</code> 입니다. 영어권에서 만든 도구가
+  이걸 신경 쓸 이유가 없었던 것입니다.</p>
+</div>
+
+<p>해결하려면 <strong>조합이 끝나는 순간</strong>을 알아야 합니다. 그런데 컴퓨터에
+설치하는 프로그램은 그 순간을 볼 수 없습니다. 그래서 한글을 지원한다는 도구들도
+<strong>단축어를 친 뒤 단축키를 한 번 더 눌러야</strong> 합니다.</p>
+
+<p><strong>브라우저는 그 순간을 알려줍니다.</strong> 이 확장은 브라우저 안에서 돌기
+때문에 조합이 끝나는 바로 그때를 잡습니다. 그래서 추가로 누를 키가 없습니다.
+위에서 직접 쳐보신 그대로입니다.</p>
+
+<div class="compare">
+<table>
+  <tr><th>도구</th><th>한글 단축어</th><th>방식</th></tr>
+  <tr><td>Text Blaze</td><td class="no">안 됨</td><td>크롬 확장</td></tr>
+  <tr><td>TextExpander</td><td class="no">안 됨</td><td>크롬 확장</td></tr>
+  <tr><td>Briskine</td><td class="no">안 됨</td><td>크롬 확장</td></tr>
+  <tr><td>Lightning Assist</td><td class="yes">됨</td><td>설치 프로그램 · 핫키를 눌러야 함</td></tr>
+  <tr class="ours"><td>한글 단축어</td><td class="yes">됨</td><td>크롬 확장 · 치는 대로 바로</td></tr>
+</table>
+</div>
+
+<h2>어디서 되나요</h2>
+<p>브라우저 안의 거의 모든 입력창에서 됩니다. 검색창, 메일 답장, 블로그 글쓰기,
+쇼핑몰 관리자 페이지, 채팅창까지요. 설치하는 프로그램이 아니라서
+<strong>컴퓨터 접근 권한을 따로 허락하지 않아도</strong> 됩니다.</p>
+
+<h2>쓰는 법</h2>
+<ol class="steps">
+  <li>확장을 설치합니다.</li>
+  <li>아이콘을 눌러 단축어를 등록합니다. <code>ㅇㄴ</code> → <code>안녕하세요. 문의 주셔서 감사합니다.</code></li>
+  <li>아무 입력창에서 <code>ㅇㄴ</code> 를 칩니다. 끝입니다.</li>
+</ol>
+
+<h2>값</h2>
+<div class="price">
+  <div class="free">무료로 단축어 10개까지</div>
+  <div class="amount">₩19,900</div>
+  <div class="once">한 번 결제 · 평생 · 개수 제한 없음</div>
+  <div class="vs">다른 도구는 월 $2.99 ~ $5.99 입니다. 다섯 달이면 넘습니다.</div>
+  <span class="cta">준비 중입니다</span>
+</div>
+
+<h2>자주 묻는 것</h2>
+
+<h3>제 글이 밖으로 나가나요?</h3>
+<p>아닙니다. 등록한 단축어도, 치는 글도 전부 브라우저 안에만 있습니다.
+서버가 없어서 보낼 데가 없습니다. 만든 사람도 무엇을 쓰는지 알 수 없습니다.</p>
+
+<h3>영어 단축어도 되나요?</h3>
+<p>됩니다. <code>;sig</code> 같은 것도 그대로입니다. 한글이 <strong>추가로</strong>
+되는 것입니다.</p>
+
+<h3>글 쓰다가 멋대로 바뀌면요?</h3>
+<p>단축어에 띄어쓰기를 넣을 수 없게 막아두었습니다. 평범한 문장을 치다가 걸리는
+일을 줄이기 위해서입니다. 그래도 걱정되면 <code>;</code> 처럼 잘 안 쓰는 글자로
+시작하시면 됩니다.</p>
+
+<h3>일본어나 중국어도 되나요?</h3>
+<p>같은 원리라 될 가능성이 높지만 <strong>아직 확인하지 못했습니다.</strong>
+확인되면 여기에 적겠습니다.</p>
+
+<footer>
+  만든 곳: Nova Labs · <a href="mailto:novalaps.kr@gmail.com">novalaps.kr@gmail.com</a>
+  · <a href="privacy/">개인정보처리방침</a>
+</footer>
+
+</main>
+
+<script src="expand.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const snippets = [
+    { trigger: "ㅇㄴ",  text: "안녕하세요. 문의 주셔서 감사합니다." },
+    { trigger: "ㄱㅅ",  text: "감사합니다. 확인 후 바로 처리해 드리겠습니다." },
+    { trigger: ";배송", text: "오늘 오후에 발송됩니다. 송장번호는 발송 후 문자로 보내드립니다." },
+    { trigger: ";sig",  text: "홍길동 · 노바랩스" },
+  ];
+  NLSnippets.set(snippets);
+
+  /* ── 맨 위 시연 ──────────────────────────────────────────────────
+     진짜 확장은 사람이 칠 때 돈다. 여기서는 그 모습을 재생만 한다. */
+
+  const stage = document.getElementById("stage");
+  const caret = stage.querySelector(".caret");
+  const reel = [
+    { type: "ㅇㄴ",  into: "안녕하세요. 문의 주셔서 감사합니다." },
+    { type: "ㄱㅅ",  into: "감사합니다. 확인 후 바로 처리해 드리겠습니다." },
+    { type: ";배송", into: "오늘 오후에 발송됩니다. 송장번호는 발송 후 문자로 보내드립니다." },
+  ];
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function paint(typed, grown) {
+    stage.textContent = "";
+    if (typed) {
+      const a = document.createElement("span");
+      a.className = "typed";
+      a.textContent = typed;
+      stage.append(a);
+    }
+    if (grown) {
+      const b = document.createElement("span");
+      b.className = "grown";
+      b.textContent = grown;
+      stage.append(b);
+    }
+    stage.append(caret);
+  }
+
+  async function play() {
+    if (still) { paint("", reel[0].into); return; }
+    for (;;) {
+      for (const { type, into } of reel) {
+        paint("", "");
+        await sleep(650);
+        for (let i = 1; i <= type.length; i++) {
+          paint(type.slice(0, i), "");
+          await sleep(190);
+        }
+        await sleep(420);
+        paint("", into);          // 펼쳐지는 순간
+        await sleep(2100);
+      }
+    }
+  }
+  play();
+
+  /* ── 조합 설명의 ㅇ → 아 → 안 ─────────────────────────────────── */
+
+  const steps = [...document.querySelectorAll("#compose span")];
+  if (!still && steps.length) {
+    let at = 0;
+    setInterval(() => {
+      steps.forEach((s, i) => s.classList.toggle("off", i > at));
+      at = (at + 1) % (steps.length + 1);
+    }, 700);
+  }
+})();
+</script>
+</body>
+</html>
