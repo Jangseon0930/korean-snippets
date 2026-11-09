@@ -82,12 +82,42 @@
     el instanceof HTMLInputElement &&
     (el.type === "password" || /password/i.test(el.autocomplete || ""));
 
+  /**
+   * 눈에 보이는 칸인가.
+   *
+   * 2026-11-08, 네이버 블로그 글쓰기에서 알았다. 단축어는 제대로 걸렸고
+   * 글자도 들어갔는데 화면에는 아무것도 안 나타났다. 편집기가 한글 입력을
+   * 받으려고 **숨겨둔 입력칸**을 두고, 보이는 글쓰기 영역은 따로 그리기
+   * 때문이다. 우리는 그 숨은 칸에 쓴 것이고, 쓴 글은 아무도 못 봤다.
+   *
+   * 안 보이는 곳에 쓰는 것은 아무것도 안 하느니만 못하다. 사용자는 왜 안
+   * 되는지 모르고, 그 칸에 남은 글자가 나중에 엉뚱하게 튀어나올 수도 있다.
+   *
+   * 보이는 칸만 상대한다. 그러면 이런 편집기에서는 조용히 아무 일도 일어나지
+   * 않는다 — 고치지 못한 것은 맞지만, 적어도 모르는 데서 망가뜨리지는 않는다.
+   */
+  function isVisible(el) {
+    const box = el.getBoundingClientRect();
+    if (box.width < 2 || box.height < 2) return false;
+
+    /*
+     * 화면 밖으로 밀어둔 칸. 편집기들이 한글 입력을 받으려고 쓰는 수법이고,
+     * `left: -9999px` 같은 식이라 크기는 멀쩡하다. 크기만 보면 못 거른다.
+     */
+    if (box.right <= 0 || box.bottom <= 0) return false;
+    if (box.left >= innerWidth || box.top >= innerHeight) return false;
+
+    const style = getComputedStyle(el);
+    return style.visibility !== "hidden" && style.opacity !== "0";
+  }
+
   const isTextField = (el) =>
     !isSecret(el) &&
+    isVisible(el) &&
     (el instanceof HTMLTextAreaElement ||
       (el instanceof HTMLInputElement && /^(text|search|email|url|tel)$/.test(el.type)));
 
-  const isEditable = (el) => el instanceof HTMLElement && el.isContentEditable;
+  const isEditable = (el) => el instanceof HTMLElement && el.isContentEditable && isVisible(el);
 
   /* ── 커서 앞의 글자 읽기 ─────────────────────────────────────────── */
 
@@ -221,19 +251,27 @@
   }, true);
 
   /*
-   * 조합 중에는 손대지 않는다 — 되돌렸다.
+   * 조합 중에도 본다. 이게 핵심이다.
    *
-   * 2026-11-02 에 조합 중에도 바꾸도록 고쳤다. 시험판에서는 스물한 가지가 다
-   * 통과했고 스파이크도 깨끗했는데, **진짜 확장에서는 아예 안 바뀌었다** —
-   * 검색창에서도, 블로그 편집기에서도. 늦어도 되던 것이 안 되게 됐으니
-   * 되돌린다.
+   * `ㅇㄴ` 은 즉시 펼쳐지는데 `;안녕` 은 한 박자 늦었다. 조합이 음절마다
+   * 끝나지 않기 때문이다 — `녕` 은 ㄴ·녀·녕 세 단계를 거치고, 그동안
+   * compositionend 는 앞 음절 `안` 에서 한 번 왔을 뿐이다. 그때 칸은 아직
+   * ";안ㄴ" 이라 안 걸린다. 그리고 마지막 음절의 조합은 다음 키를 칠
+   * 때까지 끝나지 않는다.
    *
-   * 스파이크는 페이지 안에서 돌았고 확장은 격리된 쪽에서 돈다. 그 차이일
-   * 수도 있고 아닐 수도 있는데, 지금 아는 것으로는 고를 수 없다. 추측으로
-   * 또 고치는 대신 확장 안에서 직접 보는 장치를 달았다(nl-snippets-debug).
-   * 무엇이 막는지 보고 나서 다시 손댄다.
+   * 그런데 조합 중에도 칸에는 이미 글자가 들어가 있다(";안녕",
+   * isComposing=true). 거기서 바로 바꾸면 기다릴 일이 없다. IME 가 뒤늦게
+   * 글자를 다시 밀어 넣지 않을까 걱정해서 진짜 자판으로 재 봤고, textarea 와
+   * contenteditable 둘 다 아무것도 더 들어오지 않았다(dev/spike-composing.html).
+   *
+   * 한 번 넣었다가 뺐던 적이 있다(11/02). 확장에서 아예 안 바뀐다는 보고를
+   * 받고 되돌렸는데, 11/08 에 그 보고가 **크롬 새 탭 화면**에서 친 것이었음이
+   * 드러났다. 거기는 어떤 확장도 못 들어간다. 즉 이 코드가 틀렸다는 증거는
+   * 처음부터 없었다. 안 되는 자리에서 재고 코드를 탓한 셈이다.
    */
   document.addEventListener("input", (event) => {
+    // 조합이 막 끝난 직후만 미룬다. 그 자리는 compositionend 쪽이 맡는다.
+    if (justComposed && !event.isComposing) return;
     const el = event.target;
     if (!isTextField(el) && !isEditable(el)) return;
     note({
@@ -243,7 +281,6 @@
       칸: short(valueOf(el)),
       종류: isTextField(el) ? "입력칸" : "편집기",
     }, el);
-    if (event.isComposing || justComposed) return;
     tryExpand(el, "input");
   }, true);
 

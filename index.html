@@ -250,6 +250,14 @@
     cursor: default;
   }
 
+  .caveat {
+    margin-top: 72px; padding: 22px 24px;
+    border: 1px solid var(--rule); border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .caveat h2 { font-size: 17px; margin: 0 0 8px; }
+  .caveat p { margin: 0; color: var(--dim); font-size: 14.5px; line-height: 1.75; }
+  .caveat b { color: var(--ink); }
   footer {
     margin-top: 90px; padding-top: 26px;
     border-top: 1px solid var(--rule);
@@ -366,6 +374,18 @@
 <h3>일본어나 중국어도 되나요?</h3>
 <p>같은 원리라 될 가능성이 높지만 <strong>아직 확인하지 못했습니다.</strong>
 확인되면 여기에 적겠습니다.</p>
+
+<section class="caveat">
+  <h2>안 되는 곳</h2>
+  <p><b>네이버 블로그 글쓰기</b>처럼 자체 편집기를 쓰는 곳에서는 아직 안 됩니다.
+     그런 편집기는 한글 입력을 화면에 안 보이는 칸으로 따로 받기 때문에,
+     거기에 글을 넣어도 아무 데도 나타나지 않습니다. 그래서 그런 칸은
+     건드리지 않도록 해 두었습니다. 고치는 중입니다.</p>
+  <p style="margin-top:12px">크롬 <b>새 탭</b>을 열면 가운데 보이는 검색창에서는 동작하지 않습니다.
+     그건 웹페이지가 아니라 크롬이 직접 그리는 화면이라, 크롬이 어떤 확장도
+     들어오지 못하게 막아둡니다. 주소창에 <code>google.com</code> 을 쳐서
+     페이지를 연 뒤 그 검색창에 치시면 됩니다.</p>
+</section>
 
 <footer>
   만든 곳: Nova Labs · <a href="mailto:novalaps.kr@gmail.com">novalaps.kr@gmail.com</a>
