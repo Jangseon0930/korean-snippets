@@ -250,6 +250,28 @@
     cursor: default;
   }
 
+  /* 누를 수 있는 단추. 위의 .cta 는 아직 못 사던 때의 회색 모양이다. */
+  .cta--on {
+    background: var(--amber); border-color: var(--amber-deep);
+    color: #1a1407; font-weight: 600; cursor: pointer;
+  }
+  .cta--on:hover { background: var(--amber-deep); }
+
+  /* 계좌는 옮겨 적다 틀리기 쉽다. 폭이 일정한 글꼴로 띄운다. */
+  .acct {
+    margin-top: 10px; padding: 12px 14px;
+    background: var(--raised); border: 1px solid var(--rule); border-radius: 9px;
+    font: 15px/1.5 var(--mono); color: var(--amber);
+    user-select: all;
+  }
+
+  .fineprint { color: var(--dim); font-size: 14px; }
+
+  /* 맨 위의 설치 단추. 처음 온 사람이 제일 먼저 만나는 것이라 값보다 앞에 둔다. */
+  .install { margin: 26px 0 0; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .install .cta { margin-top: 0; }
+  .install__note { color: var(--dim); font-size: 13.5px; }
+
   .caveat {
     margin-top: 72px; padding: 22px 24px;
     border: 1px solid var(--rule); border-radius: 12px;
@@ -278,6 +300,9 @@
 
 <p class="lead">자주 쓰는 말을 단축어로 등록해 두면 아무 입력창에서나 치는 대로 바뀝니다.
 한글 자판을 영어로 바꿀 필요가 없습니다.</p>
+
+<p class="install"><a class="cta cta--on" href="https://chromewebstore.google.com/detail/gebinfbchhcfhcnfpcjlekiigfkjmcfd">크롬에 설치하기</a>
+  <span class="install__note">무료로 단축어 10개까지</span></p>
 
 <div class="stage">
   <div class="stage__label">이렇게 됩니다</div>
@@ -342,7 +367,7 @@
 
 <h2>쓰는 법</h2>
 <ol class="steps">
-  <li>확장을 설치합니다.</li>
+  <li><a href="https://chromewebstore.google.com/detail/gebinfbchhcfhcnfpcjlekiigfkjmcfd">확장을 설치합니다.</a></li>
   <li>아이콘을 눌러 단축어를 등록합니다. <code>ㅇㄴ</code> → <code>안녕하세요. 문의 주셔서 감사합니다.</code></li>
   <li>아무 입력창에서 <code>ㅇㄴ</code> 를 칩니다. 끝입니다.</li>
 </ol>
@@ -353,8 +378,27 @@
   <div class="amount">₩19,900</div>
   <div class="once">한 번 결제 · 평생 · 개수 제한 없음</div>
   <div class="vs">다른 도구는 월 $2.99 ~ $5.99 입니다. 다섯 달이면 넘습니다.</div>
-  <span class="cta">준비 중입니다</span>
+  <a class="cta cta--on" href="#buy">사는 법</a>
 </div>
+
+<h2 id="buy">사는 법</h2>
+<p>카드 결제는 아직 준비 중입니다. 지금은 <b>계좌이체</b>로 받고 있습니다.
+   사람이 직접 확인하고 보내드려서, 받으시는 데 하루쯤 걸립니다.</p>
+
+<ol class="steps">
+  <li><b>₩19,900</b> 을 아래 계좌로 보냅니다.
+      <!-- ↓ 이 줄의 가운데 글자만 계좌로 바꾸면 됩니다.
+           예) 토스뱅크 1000-1234-5678 · 예금주 홍길동                        -->
+      <div class="acct">토스뱅크 1908-1096-1653 · 예금주 이장선</div></li>
+  <li><a href="mailto:novalaps.kr@gmail.com?subject=%ED%95%9C%EA%B8%80%20%EB%8B%A8%EC%B6%95%EC%96%B4%20%EC%9D%B4%EC%9A%A9%EA%B6%8C">novalaps.kr@gmail.com</a>
+      으로 <b>입금하신 이름</b>과 <b>키 받을 메일 주소</b>를 보냅니다.</li>
+  <li><b>하루 안에</b> 이용권 키를 메일로 보내드립니다.</li>
+  <li>확장 아이콘을 누르고 <b>이용권</b> 칸에 붙여넣습니다. 끝입니다.</li>
+</ol>
+
+<p class="fineprint">마음에 안 드시면 <b>일주일 안에</b> 말씀만 하시면 전액 돌려드립니다.
+   이유는 묻지 않습니다. 그 전에 <b>무료로 단축어 10개까지</b> 써보실 수 있으니,
+   맞는지 먼저 보고 정하셔도 됩니다.</p>
 
 <h2>자주 묻는 것</h2>
 
@@ -378,9 +422,8 @@
 <section class="caveat">
   <h2>안 되는 곳</h2>
   <p><b>네이버 블로그 글쓰기</b>처럼 자체 편집기를 쓰는 곳에서는 아직 안 됩니다.
-     그런 편집기는 한글 입력을 화면에 안 보이는 칸으로 따로 받기 때문에,
-     거기에 글을 넣어도 아무 데도 나타나지 않습니다. 그래서 그런 칸은
-     건드리지 않도록 해 두었습니다. 고치는 중입니다.</p>
+     그런 편집기는 글자를 받는 방식이 보통 입력창과 달라서, 저희가 글을 넣을
+     자리를 못 찾습니다. 원인을 찾는 중이고, 되는 대로 여기에 적겠습니다.</p>
   <p style="margin-top:12px">크롬 <b>새 탭</b>을 열면 가운데 보이는 검색창에서는 동작하지 않습니다.
      그건 웹페이지가 아니라 크롬이 직접 그리는 화면이라, 크롬이 어떤 확장도
      들어오지 못하게 막아둡니다. 주소창에 <code>google.com</code> 을 쳐서
